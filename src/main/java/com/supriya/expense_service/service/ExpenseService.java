@@ -1,5 +1,7 @@
 package com.supriya.expense_service.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -7,8 +9,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import com.supriya.expense_service.dto.CategorySummaryResponse;
 import com.supriya.expense_service.dto.ExpenseRequest;
 import com.supriya.expense_service.dto.ExpenseResponse;
+import com.supriya.expense_service.dto.MonthlySummaryResponse;
+import com.supriya.expense_service.dto.RangeSummaryResponse;
 import com.supriya.expense_service.entity.Expense;
 import com.supriya.expense_service.repository.ExpenseRepository;
 
@@ -135,4 +140,52 @@ public class ExpenseService {
 	        expenseRepository.delete(expense);
 	    }
 
-}
+	    public List<CategorySummaryResponse> getCategoryWiseSummary(){
+	    	
+	    	String email = SecurityContextHolder.getContext().getAuthentication().getName();
+	    	
+	    	List<Expense> expenses = expenseRepository.findByUserEmail(email);
+	    	
+	    	return expenses.stream()
+	    			.collect(Collectors.groupingBy(
+	    					Expense::getCategory, 
+	    					Collectors.reducing(
+	    							BigDecimal.ZERO,
+	    							Expense::getAmount, 
+	    							BigDecimal::add)))
+                    .entrySet()
+                    .stream()
+                    .map(entry -> 
+                            new CategorySummaryResponse(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
+	    }
+	    
+	    public MonthlySummaryResponse getMonthlyWiseSummary(int year, int month){
+	    	
+	    	String email = SecurityContextHolder.getContext().getAuthentication().getName();
+	    	
+	    	BigDecimal total = expenseRepository.findByUserEmail(email)
+	                .stream()
+	                .filter(e ->
+	                        e.getExpenseDate().getYear() == year &&
+	                        e.getExpenseDate().getMonthValue() == month
+	                )
+	                .map(Expense::getAmount)
+	                .reduce(BigDecimal.ZERO, BigDecimal::add);
+	    	
+	    	return new MonthlySummaryResponse(year, month, total);
+	    }
+	    
+	    public RangeSummaryResponse getDateRangeSummary(LocalDate from, LocalDate to) {
+	    	
+	    	String email = SecurityContextHolder.getContext().getAuthentication().getName();
+	    	
+	    	BigDecimal total = expenseRepository.findByUserEmailAndExpenseDateBetween(email, from, to)
+	    			.stream()
+	    			.map(Expense::getAmount)
+	    			.reduce(BigDecimal.ZERO, BigDecimal::add);
+	    	
+	    	return new RangeSummaryResponse(from.toString(), to.toString(), total);
+	    }
+	    
+} 

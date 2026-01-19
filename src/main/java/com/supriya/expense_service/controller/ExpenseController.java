@@ -1,5 +1,6 @@
 package com.supriya.expense_service.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -11,10 +12,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.supriya.expense_service.dto.CategorySummaryResponse;
 import com.supriya.expense_service.dto.ExpenseRequest;
 import com.supriya.expense_service.dto.ExpenseResponse;
+import com.supriya.expense_service.dto.MonthlySummaryResponse;
+import com.supriya.expense_service.dto.RangeSummaryResponse;
 import com.supriya.expense_service.service.ExpenseService;
 
 @RestController
@@ -59,5 +64,19 @@ public class ExpenseController {
 	    expenseService.deleteExpense(id);
 	    return ResponseEntity.noContent().build();
 	}
+	
+	@GetMapping("/report/category")
+	public ResponseEntity<List<CategorySummaryResponse>> categoryReport() {
+		return ResponseEntity.ok(expenseService.getCategoryWiseSummary());
+	}
 
+	@GetMapping("/report/monthly")
+	public ResponseEntity<MonthlySummaryResponse> monthlyReport(@RequestParam int year, @RequestParam int month) {
+		return ResponseEntity.ok(expenseService.getMonthlyWiseSummary(year, month));
+	}
+	
+	@GetMapping("/report/range")
+	public ResponseEntity<RangeSummaryResponse> rangeReport(@RequestParam LocalDate from, @RequestParam LocalDate to) {
+		return ResponseEntity.ok(expenseService.getDateRangeSummary(from, to));
+	}
 }
