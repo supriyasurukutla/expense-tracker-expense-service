@@ -25,8 +25,9 @@ public class Expense {
 	    @Column(nullable = false)
 	    private BigDecimal amount;
 
-	    @Column(nullable = false)
-	    private String category;
+	    @ManyToOne
+	    @JoinColumn(name = "category_id", nullable = false)
+	    private Category category;
 
 	    @Column(nullable = false)
 	    private LocalDate expenseDate;
@@ -58,11 +59,11 @@ public class Expense {
 			this.amount = amount;
 		}
 
-		public String getCategory() {
+		public Category getCategory() {
 			return category;
 		}
 
-		public void setCategory(String category) {
+		public void setCategory(Category category) {
 			this.category = category;
 		}
 

@@ -10,6 +10,6 @@ public class ExpenseRequest {
 
 	private String title;
 	private BigDecimal amount;
-	private String category;
+	private Long categoryId;
 	private LocalDate expenseDate;
 }

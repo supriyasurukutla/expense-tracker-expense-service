@@ -1,5 +1,6 @@
 package com.supriya.expense_service.controller;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -41,9 +42,14 @@ public class ExpenseController {
 	}
 	
 	@GetMapping
-	public ResponseEntity<List<ExpenseResponse>> getMyExpenses() {
+	public ResponseEntity<List<ExpenseResponse>> getMyExpenses(
+			@RequestParam(required=false) String category,
+			@RequestParam(required=false) LocalDate fromDate,
+			@RequestParam(required=false) LocalDate toDate,
+			@RequestParam(required=false) BigDecimal minAmount,
+			@RequestParam(required=false) BigDecimal maxAmount) {
 		
-		return ResponseEntity.ok(expenseService.getMyExpenses());
+		return ResponseEntity.ok(expenseService.getMyExpenses(category, fromDate, toDate, minAmount, maxAmount));
 	}
 	
 	@PreAuthorize("hasRole('ADMIN')")

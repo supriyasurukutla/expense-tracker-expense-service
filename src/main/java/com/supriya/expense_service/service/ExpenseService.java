@@ -14,16 +14,21 @@ import com.supriya.expense_service.dto.ExpenseRequest;
 import com.supriya.expense_service.dto.ExpenseResponse;
 import com.supriya.expense_service.dto.MonthlySummaryResponse;
 import com.supriya.expense_service.dto.RangeSummaryResponse;
+import com.supriya.expense_service.entity.Category;
 import com.supriya.expense_service.entity.Expense;
+import com.supriya.expense_service.repository.CategoryRepository;
 import com.supriya.expense_service.repository.ExpenseRepository;
 
 @Service
 public class ExpenseService {
 
 	private final ExpenseRepository expenseRepository;
+	
+	private final CategoryRepository categoryRepository;
 
-    public ExpenseService(ExpenseRepository expenseRepository) {
+    public ExpenseService(ExpenseRepository expenseRepository, CategoryRepository categoryRepository) {
         this.expenseRepository = expenseRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     public ExpenseResponse addExpense(ExpenseRequest request) {
@@ -33,10 +38,13 @@ public class ExpenseService {
                 .getAuthentication()
                 .getName();
 
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+        
         Expense expense = Expense.builder()
                 .title(request.getTitle())
                 .amount(request.getAmount())
-                .category(request.getCategory())
+                .category(category)
                 .expenseDate(request.getExpenseDate())
                 .userEmail(email)
                 .build();
@@ -52,12 +60,12 @@ public class ExpenseService {
                 .id(expense.getId())
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
-                .category(expense.getCategory())
+                .category(expense.getCategory().getName())
                 .expenseDate(expense.getExpenseDate())
                 .build();
 	}
 	
-	 public List<ExpenseResponse> getMyExpenses() {
+	 public List<ExpenseResponse> getMyExpenses(String category, LocalDate fromDate, LocalDate toDate, BigDecimal minAmount, BigDecimal maxAmount) {
 
 	        String email =
 	            SecurityContextHolder.getContext()
@@ -66,6 +74,20 @@ public class ExpenseService {
 
 	        return expenseRepository.findByUserEmail(email)
 	                .stream()
+	                .filter(e ->
+	                        category == null || e.getCategory().getName().equalsIgnoreCase(category)
+	                        )
+	                .filter(e ->
+	                        fromDate == null || !e.getExpenseDate().isBefore(fromDate)
+	                        )
+	                .filter(e ->
+	                       toDate == null || !e.getExpenseDate().isAfter(toDate)
+	                       )
+	                .filter(e ->
+	                       minAmount == null || e.getAmount().compareTo(minAmount) >= 0
+	                       )
+	                .filter(e ->
+	                       maxAmount == null || e.getAmount().compareTo(maxAmount) <= 0)
 	                .map(this::mapToResponse)
 	                .collect(Collectors.toList());
 	    }
@@ -102,10 +124,13 @@ public class ExpenseService {
 	                && !"ROLE_ADMIN".equals(role)) {
 	            throw new AccessDeniedException("Not allowed to update this expense");
 	        }
+	        
+	        Category category = categoryRepository.findById(request.getCategoryId())
+	                .orElseThrow(() -> new RuntimeException("Category not found"));
 
 	        expense.setTitle(request.getTitle());
 	        expense.setAmount(request.getAmount());
-	        expense.setCategory(request.getCategory());
+	        expense.setCategory(category);
 	        expense.setExpenseDate(request.getExpenseDate());
 
 	        Expense updated = expenseRepository.save(expense);
@@ -148,7 +173,7 @@ public class ExpenseService {
 	    	
 	    	return expenses.stream()
 	    			.collect(Collectors.groupingBy(
-	    					Expense::getCategory, 
+	    					expense -> expense.getCategory().getName(), 
 	    					Collectors.reducing(
 	    							BigDecimal.ZERO,
 	    							Expense::getAmount, 
