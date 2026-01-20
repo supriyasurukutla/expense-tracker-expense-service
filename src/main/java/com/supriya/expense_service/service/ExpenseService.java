@@ -16,6 +16,8 @@ import com.supriya.expense_service.dto.MonthlySummaryResponse;
 import com.supriya.expense_service.dto.RangeSummaryResponse;
 import com.supriya.expense_service.entity.Category;
 import com.supriya.expense_service.entity.Expense;
+import com.supriya.expense_service.exception.ResourceNotFoundException;
+import com.supriya.expense_service.exception.UnauthorizedActionException;
 import com.supriya.expense_service.repository.CategoryRepository;
 import com.supriya.expense_service.repository.ExpenseRepository;
 
@@ -39,8 +41,12 @@ public class ExpenseService {
                 .getName();
 
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found"));
-        
+                .orElseThrow(() ->
+                    new ResourceNotFoundException(
+                        "Category not found with id: " + request.getCategoryId()
+                    )
+                );
+
         Expense expense = Expense.builder()
                 .title(request.getTitle())
                 .amount(request.getAmount())
@@ -118,15 +124,19 @@ public class ExpenseService {
 	                .orElse("");
 
 	        Expense expense = expenseRepository.findById(id)
-	            .orElseThrow(() -> new RuntimeException("Expense not found"));
+	            .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
 	        if (!expense.getUserEmail().equals(loggedInEmail)
 	                && !"ROLE_ADMIN".equals(role)) {
-	            throw new AccessDeniedException("Not allowed to update this expense");
+	            throw new UnauthorizedActionException("Not allowed to update this expense");
 	        }
 	        
 	        Category category = categoryRepository.findById(request.getCategoryId())
-	                .orElseThrow(() -> new RuntimeException("Category not found"));
+	                .orElseThrow(() ->
+	                    new ResourceNotFoundException(
+	                        "Category not found with id: " + request.getCategoryId()
+	                    )
+	                );
 
 	        expense.setTitle(request.getTitle());
 	        expense.setAmount(request.getAmount());
@@ -155,7 +165,7 @@ public class ExpenseService {
 	                .orElse("");
 
 	        Expense expense = expenseRepository.findById(id)
-	            .orElseThrow(() -> new RuntimeException("Expense not found"));
+	            .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
 	        if (!expense.getUserEmail().equals(loggedInEmail)
 	                && !"ROLE_ADMIN".equals(role)) {
